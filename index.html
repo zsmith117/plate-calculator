@@ -135,6 +135,8 @@
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
+    .barbell-wrap::before,
+    .barbell-wrap::after { opacity: 1; }
     .barbell {
       height: 150px;
       min-width: 100%;
@@ -147,17 +149,17 @@
     .plates-side.left { left: 6%; }
     .plates-side.right { right: 6%; }
 
-    .plate { font-size: 9px; margin: 0 1px; }
+      .plate { font-size: 9px; margin: 0 1px; }
     .plate-45  { width: 18px; height: 122px; }
     .plate-25  { width: 14px; height: 96px; }
     .plate-10  { width: 11px; height: 68px; }
     .plate-5   { width: 9px;  height: 52px; }
-    .plate-2_5 { width: 7px;  height: 40px; font-size: 7px; }
+    .plate-2_5 { width: 7px;  height: 40px; font-size: 0; }
 
     .machine-base { left: 8%; width: 28px; height: 110px; }
     .machine-peg { left: calc(8% + 28px); width: 50%; height: 6px; }
     .barbell.machine-mode:not(.machine-double) .plates-side.left { left: calc(8% + 28px); }
-    .machine-center { min-width: 70px; height: 44px; font-size: 11px; padding: 0 10px; }
+    .machine-center { min-width: 70px; height: 26px; font-size: 11px; padding: 0 10px; top: 8%; }
     .machine-center .center-label { font-size: 8px; }
     .machine-label { font-size: 10px; top: -16px; }
     .sides-tab { font-size: 13px; }
@@ -250,6 +252,27 @@
     padding: 24px 12px;
     margin-bottom: 18px;
     overflow: hidden;
+    position: relative;
+  }
+  .barbell-wrap::before,
+  .barbell-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .barbell-wrap::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--panel-2) 0%, rgba(35,43,54,0) 100%);
+  }
+  .barbell-wrap::after {
+    right: 0;
+    background: linear-gradient(-90deg, var(--panel-2) 0%, rgba(35,43,54,0) 100%);
   }
   .barbell {
     position: relative;
@@ -417,12 +440,12 @@
 
   .machine-center {
     position: absolute;
-    top: 50%;
+    top: 12%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     min-width: 90px;
-    height: 56px;
-    padding: 0 14px;
+    height: 32px;
+    padding: 0 12px;
     background: linear-gradient(180deg, #3a4250 0%, #1f2630 100%);
     border: 1px solid #4a525f;
     border-radius: 8px;
@@ -463,6 +486,7 @@
   }
   .plates-side.left .plate { animation-name: slideInLeft; }
   .plates-side.right .plate { animation-name: slideInRight; }
+  .plate.no-animate { animation: none !important; opacity: 1; }
 
   @keyframes slideInLeft {
     0%   { opacity: 0; transform: translateX(-180px) rotate(-25deg); }
@@ -479,7 +503,7 @@
   .plate-25  { width: 17px; height: 115px; background: var(--p25); }
   .plate-10  { width: 13px; height: 80px;  background: var(--p10); }
   .plate-5   { width: 10px; height: 60px;  background: var(--p5); color: #2a2a2a; text-shadow: 0 1px 1px rgba(255,255,255,0.3); }
-  .plate-2_5 { width: 8px;  height: 44px;  background: var(--p25_); font-size: 8px; }
+  .plate-2_5 { width: 8px;  height: 44px;  background: var(--p25_); font-size: 0; }
 
   .legend {
     display: flex;
@@ -507,6 +531,7 @@
     background: var(--panel-2);
     border-radius: 12px;
     border: 1px solid var(--border);
+    margin-bottom: 18px;
   }
   .result.error { border-color: var(--error); }
   .result-header {
@@ -528,6 +553,7 @@
     font-size: 13px;
     color: var(--muted);
     margin-top: 6px;
+    min-height: 20px;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.2px;
   }
@@ -546,33 +572,57 @@
     padding: 6px 0;
   }
 
-  /* ===== Input-mode tabs + manual plate adder ===== */
+  /* ===== Input-mode toggle (secondary, underline-style) ===== */
   .input-mode-tabs {
     display: inline-flex;
-    gap: 3px;
-    padding: 3px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    gap: 18px;
     margin-bottom: 14px;
+    padding: 0 4px;
   }
   .input-mode-tab {
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 6px 2px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
     color: var(--muted);
-    border-radius: 5px;
+    border-bottom: 2px solid transparent;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s, color 0.15s;
+    transition: color 0.15s, border-color 0.15s;
   }
   .input-mode-tab:hover { color: var(--text); }
-  .input-mode-tab.active { background: var(--accent); color: white; }
+  .input-mode-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
 
   .target-input-wrap { display: block; }
   .manual-input-wrap { display: none; }
   .controls.manual .target-input-wrap { display: none; }
   .controls.manual .manual-input-wrap { display: block; }
+
+  .manual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .reset-link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background 0.1s, opacity 0.1s;
+  }
+  .reset-link:hover:not(:disabled) { background: var(--panel-2); }
+  .reset-link:disabled { opacity: 0.25; cursor: not-allowed; }
 
   .plate-counters { display: flex; flex-direction: column; gap: 6px; }
   .plate-counter {
@@ -593,13 +643,13 @@
   .plate-counter-name { font-size: 14px; font-weight: 600; flex: 1; }
   .plate-counter-controls { display: flex; align-items: center; gap: 6px; }
   .counter-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 7px;
+    width: 44px;
+    height: 44px;
+    border-radius: 9px;
     background: var(--panel);
     border: 1px solid var(--border);
     color: var(--text);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
@@ -607,8 +657,9 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    transition: background 0.1s, border-color 0.1s;
+    transition: background 0.1s, border-color 0.1s, transform 0.08s;
   }
+  .counter-btn:active:not(:disabled) { transform: scale(0.92); }
   .counter-btn:hover:not(:disabled) { background: var(--border); }
   .counter-btn:active:not(:disabled) { background: var(--accent); border-color: var(--accent); }
   .counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -642,13 +693,16 @@
         <input type="number" id="target" placeholder="e.g. 225" min="0" step="2.5" inputmode="decimal" value="0">
       </div>
       <div class="manual-input-wrap">
-        <label class="field-label" id="manual-label">Plates loaded</label>
+        <div class="manual-header">
+          <label class="field-label" id="manual-label">Plates loaded</label>
+          <button type="button" class="reset-link" id="reset-manual">Reset</button>
+        </div>
         <div class="plate-counters" id="plate-counters"></div>
       </div>
       <div class="bar-control">
         <label class="field-label">Bar</label>
         <label class="toggle-row" for="bar">
-          <span>45 lb bar<span class="hint">(in total)</span></span>
+          <span>Include 45 lb bar in total</span>
           <input type="checkbox" id="bar" checked>
           <div class="switch"></div>
         </label>
@@ -661,11 +715,15 @@
         <div>
           <label class="field-label">Sides</label>
           <div class="sides-tabs">
-            <div class="sides-tab active" data-sides="single">Single</div>
-            <div class="sides-tab" data-sides="double">Double</div>
+            <div class="sides-tab active" data-sides="single">One side</div>
+            <div class="sides-tab" data-sides="double">Both sides</div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="empty">Enter a target weight to see plates</div>
     </div>
 
     <div class="barbell-wrap">
@@ -680,17 +738,6 @@
         <div class="plates-side left" id="plates-left"></div>
         <div class="plates-side right" id="plates-right"></div>
       </div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--p45)"></div>45 lb</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--p25)"></div>25 lb</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--p10)"></div>10 lb</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--p5)"></div>5 lb</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:var(--p25_)"></div>2.5 lb</div>
-      </div>
-    </div>
-
-    <div class="result" id="result">
-      <div class="empty">Enter a target weight to see plates</div>
     </div>
   </div>
 
@@ -725,6 +772,7 @@
   let mode = 'barbell';            // 'barbell' | 'machine'
   let machineSides = 'single';     // 'single' | 'double' (machine sub-mode)
   let inputMode = 'calculate';     // 'calculate' | 'manual'
+  let animateNext = true;          // animate only on initial load / mode change
   const manualCounts = { 45: 0, 25: 0, 10: 0, 5: 0, 2.5: 0 };
 
   const PLATE_COLOR_VAR = { 45: '--p45', 25: '--p25', 10: '--p10', 5: '--p5', 2.5: '--p25_' };
@@ -763,13 +811,28 @@
     render();
   }
 
+  function resetManual() {
+    let any = false;
+    for (const size of PLATES) {
+      if (manualCounts[size] > 0) any = true;
+      manualCounts[size] = 0;
+    }
+    if (any) animateNext = true;
+    refreshCounterUI();
+    render();
+  }
+
   function refreshCounterUI() {
+    let anyLoaded = false;
     plateCountersEl.querySelectorAll('.plate-counter').forEach(row => {
       const size = parseFloat(row.dataset.size);
       const count = manualCounts[size] || 0;
+      if (count > 0) anyLoaded = true;
       row.querySelector('.counter-value').textContent = count;
       row.querySelector('[data-action="dec"]').disabled = count === 0;
     });
+    const resetBtn = document.getElementById('reset-manual');
+    if (resetBtn) resetBtn.disabled = !anyLoaded;
   }
 
   function manualPlatesArray() {
@@ -802,6 +865,8 @@
   function renderBarbell(plates, opts = {}) {
     leftEl.innerHTML = '';
     rightEl.innerHTML = '';
+    const animate = animateNext;
+    animateNext = false;
     if (!plates || plates.length === 0) return;
 
     const ordered = [];
@@ -809,18 +874,19 @@
       for (let i = 0; i < p.count; i++) ordered.push(p.size);
     }
 
+    const animClass = animate ? '' : ' no-animate';
     ordered.forEach((size, idx) => {
       const label = size === 2.5 ? '2.5' : String(size);
       const left = document.createElement('div');
-      left.className = `plate ${PLATE_CLASS[size]}`;
-      left.style.animationDelay = `${idx * 80}ms`;
+      left.className = `plate ${PLATE_CLASS[size]}${animClass}`;
+      if (animate) left.style.animationDelay = `${idx * 80}ms`;
       left.textContent = label;
       leftEl.appendChild(left);
 
       if (!opts.singleSide) {
         const right = document.createElement('div');
-        right.className = `plate ${PLATE_CLASS[size]}`;
-        right.style.animationDelay = `${idx * 80}ms`;
+        right.className = `plate ${PLATE_CLASS[size]}${animClass}`;
+        if (animate) right.style.animationDelay = `${idx * 80}ms`;
         right.textContent = label;
         rightEl.appendChild(right);
       }
@@ -829,6 +895,7 @@
 
   function setMode(newMode) {
     mode = newMode;
+    animateNext = true;
     modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
 
     barbellEl.classList.remove('machine-mode');
@@ -853,6 +920,7 @@
 
   function setInputMode(newInputMode) {
     inputMode = newInputMode;
+    animateNext = true;
     inputModeTabs.forEach(t => t.classList.toggle('active', t.dataset.input === inputMode));
     controlsEl.classList.toggle('manual', inputMode === 'manual');
     updateManualLabel();
@@ -866,6 +934,7 @@
 
   function setSides(sides) {
     machineSides = sides;
+    animateNext = true;
     applySides();
     updateManualLabel();
     render();
@@ -886,7 +955,7 @@
 
       let html = `
         <div class="result-header">
-          <span class="result-label">Total resistance</span>
+          <span class="result-label">Total</span>
           <span class="result-total">${total} lb</span>
         </div>
         <div class="breakdown">
@@ -895,12 +964,10 @@
           ${double ? `(${plateSum} per side)` : ''}
         </div>
       `;
-      if (plates.length > 0) {
-        const prefix = double ? 'Per side: ' : '';
-        html += `<div class="plate-count-line">${prefix}${formatPlateCounts(plates)}</div>`;
-      } else {
-        html += '<div class="side-note">Add plates with the + buttons.</div>';
-      }
+      const manifest = plates.length > 0
+        ? `${double ? 'Per side: ' : ''}${formatPlateCounts(plates)}`
+        : 'Add plates with the + buttons';
+      html += `<div class="plate-count-line">${manifest}</div>`;
       resultEl.innerHTML = html;
       renderBarbell(plates, { singleSide: !double });
       return;
@@ -913,7 +980,7 @@
 
     let html = `
       <div class="result-header">
-        <span class="result-label">Total loaded</span>
+        <span class="result-label">Total</span>
         <span class="result-total">${total} lb</span>
       </div>
       <div class="breakdown">
@@ -921,13 +988,10 @@
         &nbsp;·&nbsp; Each side: <strong>${plateSum} lb</strong>
       </div>
     `;
-    if (plates.length > 0) {
-      html += `<div class="plate-count-line">Per side: ${formatPlateCounts(plates)}</div>`;
-    } else if (useBar) {
-      html += '<div class="side-note">Bar only — add plates with the + buttons.</div>';
-    } else {
-      html += '<div class="side-note">Add plates with the + buttons.</div>';
-    }
+    const manifest = plates.length > 0
+      ? `Per side: ${formatPlateCounts(plates)}`
+      : (useBar ? 'Bar only — add plates with the + buttons' : 'Add plates with the + buttons');
+    html += `<div class="plate-count-line">${manifest}</div>`;
     resultEl.innerHTML = html;
     renderBarbell(plates);
   }
@@ -939,14 +1003,15 @@
     }
 
     const targetRaw = targetInput.value.trim();
-    if (targetRaw === '') {
+    const target = parseFloat(targetRaw);
+
+    if (targetRaw === '' || target === 0) {
       resultEl.classList.remove('error');
       resultEl.innerHTML = '<div class="empty">Enter a target weight to see plates</div>';
       renderBarbell([]);
       return;
     }
 
-    const target = parseFloat(targetRaw);
     if (isNaN(target) || target < 0) {
       resultEl.classList.add('error');
       resultEl.innerHTML = '<div class="error-msg">Please enter a valid positive number.</div>';
@@ -978,7 +1043,7 @@
 
       let html = `
         <div class="result-header">
-          <span class="result-label">Total resistance</span>
+          <span class="result-label">Total</span>
           <span class="result-total">${total} lb</span>
         </div>
         <div class="breakdown">
@@ -987,14 +1052,12 @@
           ${double ? `(${loadedPerSide} per side)` : ''}
         </div>
       `;
-      if (plates.length > 0) {
-        const prefix = double ? 'Per side: ' : '';
-        html += `<div class="plate-count-line">${prefix}${formatPlateCounts(plates)}</div>`;
-      }
+      const manifestMachine = plates.length > 0
+        ? `${double ? 'Per side: ' : ''}${formatPlateCounts(plates)}`
+        : '';
+      html += `<div class="plate-count-line">${manifestMachine}</div>`;
       if (plates.length === 0 && plateTarget === 0 && machineBase > 0) {
         html += '<div class="side-note">No plates needed — machine weight alone matches the target.</div>';
-      } else if (plates.length === 0) {
-        html += '<div class="side-note">No plates loaded.</div>';
       }
       if (leftover > 0) {
         const shortBy = double ? leftover * 2 : leftover;
@@ -1024,7 +1087,7 @@
 
     let html = `
       <div class="result-header">
-        <span class="result-label">Total loaded</span>
+        <span class="result-label">Total</span>
         <span class="result-total">${actualTotal} lb</span>
       </div>
       <div class="breakdown">
@@ -1032,9 +1095,10 @@
         &nbsp;·&nbsp; Each side: <strong>${loadedPerSide} lb</strong>
       </div>
     `;
-    if (plates.length > 0) {
-      html += `<div class="plate-count-line">Per side: ${formatPlateCounts(plates)}</div>`;
-    }
+    const manifestBarbell = plates.length > 0
+      ? `Per side: ${formatPlateCounts(plates)}`
+      : '';
+    html += `<div class="plate-count-line">${manifestBarbell}</div>`;
 
     if (plates.length === 0 && useBar) {
       html += '<div class="side-note">No plates needed — just the bar.</div>';
@@ -1068,6 +1132,7 @@
   modeTabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
   sidesTabs.forEach(t => t.addEventListener('click', () => setSides(t.dataset.sides)));
   inputModeTabs.forEach(t => t.addEventListener('click', () => setInputMode(t.dataset.input)));
+  document.getElementById('reset-manual').addEventListener('click', resetManual);
   targetInput.addEventListener('input', render);
   barInput.addEventListener('change', render);
   machineBaseInput.addEventListener('input', render);
