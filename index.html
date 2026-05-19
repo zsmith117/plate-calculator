@@ -524,6 +524,14 @@
   .result-total { font-size: 22px; font-weight: 700; }
   .breakdown { font-size: 14px; color: var(--muted); }
   .breakdown strong { color: var(--text); }
+  .plate-count-line {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+  }
+  .plate-count-line strong { color: var(--text); font-weight: 600; }
   .side-note {
     font-size: 12px;
     color: var(--muted);
@@ -537,6 +545,80 @@
     text-align: center;
     padding: 6px 0;
   }
+
+  /* ===== Input-mode tabs + manual plate adder ===== */
+  .input-mode-tabs {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .input-mode-tab {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .input-mode-tab:hover { color: var(--text); }
+  .input-mode-tab.active { background: var(--accent); color: white; }
+
+  .target-input-wrap { display: block; }
+  .manual-input-wrap { display: none; }
+  .controls.manual .target-input-wrap { display: none; }
+  .controls.manual .manual-input-wrap { display: block; }
+
+  .plate-counters { display: flex; flex-direction: column; gap: 6px; }
+  .plate-counter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .plate-counter-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .plate-counter-name { font-size: 14px; font-weight: 600; flex: 1; }
+  .plate-counter-controls { display: flex; align-items: center; gap: 6px; }
+  .counter-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .counter-btn:hover:not(:disabled) { background: var(--border); }
+  .counter-btn:active:not(:disabled) { background: var(--accent); border-color: var(--accent); }
+  .counter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .counter-value {
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
 </style>
 </head>
 <body>
@@ -549,10 +631,19 @@
       <div class="mode-tab" data-mode="machine" role="tab">Machine</div>
     </div>
 
+    <div class="input-mode-tabs" role="tablist">
+      <div class="input-mode-tab active" data-input="calculate" role="tab">Calculate</div>
+      <div class="input-mode-tab" data-input="manual" role="tab">Manual</div>
+    </div>
+
     <div class="controls" id="controls">
-      <div>
+      <div class="target-input-wrap">
         <label class="field-label" for="target">Target weight (lbs)</label>
-        <input type="number" id="target" placeholder="e.g. 225" min="0" step="2.5" inputmode="decimal" value="225">
+        <input type="number" id="target" placeholder="e.g. 225" min="0" step="2.5" inputmode="decimal" value="0">
+      </div>
+      <div class="manual-input-wrap">
+        <label class="field-label" id="manual-label">Plates loaded</label>
+        <div class="plate-counters" id="plate-counters"></div>
       </div>
       <div class="bar-control">
         <label class="field-label">Bar</label>
@@ -627,9 +718,73 @@
   const subtitleEl = document.getElementById('subtitle');
   const modeTabs = document.querySelectorAll('.mode-tab');
   const sidesTabs = document.querySelectorAll('.sides-tab');
+  const inputModeTabs = document.querySelectorAll('.input-mode-tab');
+  const plateCountersEl = document.getElementById('plate-counters');
+  const manualLabelEl = document.getElementById('manual-label');
 
   let mode = 'barbell';            // 'barbell' | 'machine'
   let machineSides = 'single';     // 'single' | 'double' (machine sub-mode)
+  let inputMode = 'calculate';     // 'calculate' | 'manual'
+  const manualCounts = { 45: 0, 25: 0, 10: 0, 5: 0, 2.5: 0 };
+
+  const PLATE_COLOR_VAR = { 45: '--p45', 25: '--p25', 10: '--p10', 5: '--p5', 2.5: '--p25_' };
+
+  function buildPlateCounters() {
+    plateCountersEl.innerHTML = '';
+    for (const size of PLATES) {
+      const label = size === 2.5 ? '2.5' : String(size);
+      const row = document.createElement('div');
+      row.className = 'plate-counter';
+      row.dataset.size = size;
+      row.innerHTML = `
+        <div class="plate-counter-swatch" style="background:var(${PLATE_COLOR_VAR[size]})"></div>
+        <div class="plate-counter-name">${label} lb</div>
+        <div class="plate-counter-controls">
+          <button type="button" class="counter-btn" data-action="dec" aria-label="Remove ${label} lb plate">−</button>
+          <span class="counter-value">0</span>
+          <button type="button" class="counter-btn" data-action="inc" aria-label="Add ${label} lb plate">+</button>
+        </div>
+      `;
+      plateCountersEl.appendChild(row);
+    }
+    plateCountersEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.counter-btn');
+      if (!btn) return;
+      const row = btn.closest('.plate-counter');
+      const size = parseFloat(row.dataset.size);
+      const delta = btn.dataset.action === 'inc' ? 1 : -1;
+      adjustCount(size, delta);
+    });
+  }
+
+  function adjustCount(size, delta) {
+    manualCounts[size] = Math.max(0, (manualCounts[size] || 0) + delta);
+    refreshCounterUI();
+    render();
+  }
+
+  function refreshCounterUI() {
+    plateCountersEl.querySelectorAll('.plate-counter').forEach(row => {
+      const size = parseFloat(row.dataset.size);
+      const count = manualCounts[size] || 0;
+      row.querySelector('.counter-value').textContent = count;
+      row.querySelector('[data-action="dec"]').disabled = count === 0;
+    });
+  }
+
+  function manualPlatesArray() {
+    return PLATES
+      .map(size => ({ size, count: manualCounts[size] || 0 }))
+      .filter(p => p.count > 0);
+  }
+
+  function formatPlateCounts(plates) {
+    if (!plates || plates.length === 0) return '';
+    return plates.map(p => {
+      const label = p.size === 2.5 ? '2.5' : String(p.size);
+      return `${p.count}× <strong>${label} lb</strong>`;
+    }).join(', ');
+  }
 
   function calculatePlates(perSideWeight) {
     const plates = [];
@@ -687,6 +842,7 @@
     } else {
       subtitleEl.textContent = 'Figure out which plates to load on each side';
     }
+    updateManualLabel();
     render();
   }
 
@@ -695,13 +851,93 @@
     sidesTabs.forEach(t => t.classList.toggle('active', t.dataset.sides === machineSides));
   }
 
-  function setSides(sides) {
-    machineSides = sides;
-    applySides();
+  function setInputMode(newInputMode) {
+    inputMode = newInputMode;
+    inputModeTabs.forEach(t => t.classList.toggle('active', t.dataset.input === inputMode));
+    controlsEl.classList.toggle('manual', inputMode === 'manual');
+    updateManualLabel();
     render();
   }
 
+  function updateManualLabel() {
+    const symmetric = mode === 'barbell' || (mode === 'machine' && machineSides === 'double');
+    manualLabelEl.textContent = symmetric ? 'Plates loaded (per side)' : 'Plates loaded';
+  }
+
+  function setSides(sides) {
+    machineSides = sides;
+    applySides();
+    updateManualLabel();
+    render();
+  }
+
+  function renderManual() {
+    resultEl.classList.remove('error');
+    const plates = manualPlatesArray();
+    const plateSum = plates.reduce((s, p) => s + p.size * p.count, 0);
+
+    if (mode === 'machine') {
+      const machineBase = Math.max(0, parseFloat(machineBaseInput.value) || 0);
+      machineLabel.textContent = `${machineBase} lb`;
+      machineCenterWeightEl.textContent = `${machineBase} lb`;
+      const double = machineSides === 'double';
+      const loadedPlates = double ? plateSum * 2 : plateSum;
+      const total = machineBase + loadedPlates;
+
+      let html = `
+        <div class="result-header">
+          <span class="result-label">Total resistance</span>
+          <span class="result-total">${total} lb</span>
+        </div>
+        <div class="breakdown">
+          Machine: <strong>${machineBase} lb</strong>
+          &nbsp;·&nbsp; Plates: <strong>${loadedPlates} lb</strong>
+          ${double ? `(${plateSum} per side)` : ''}
+        </div>
+      `;
+      if (plates.length > 0) {
+        const prefix = double ? 'Per side: ' : '';
+        html += `<div class="plate-count-line">${prefix}${formatPlateCounts(plates)}</div>`;
+      } else {
+        html += '<div class="side-note">Add plates with the + buttons.</div>';
+      }
+      resultEl.innerHTML = html;
+      renderBarbell(plates, { singleSide: !double });
+      return;
+    }
+
+    // Barbell mode
+    const useBar = barInput.checked;
+    const barW = useBar ? BAR_WEIGHT : 0;
+    const total = barW + plateSum * 2;
+
+    let html = `
+      <div class="result-header">
+        <span class="result-label">Total loaded</span>
+        <span class="result-total">${total} lb</span>
+      </div>
+      <div class="breakdown">
+        Bar: <strong>${barW} lb</strong>
+        &nbsp;·&nbsp; Each side: <strong>${plateSum} lb</strong>
+      </div>
+    `;
+    if (plates.length > 0) {
+      html += `<div class="plate-count-line">Per side: ${formatPlateCounts(plates)}</div>`;
+    } else if (useBar) {
+      html += '<div class="side-note">Bar only — add plates with the + buttons.</div>';
+    } else {
+      html += '<div class="side-note">Add plates with the + buttons.</div>';
+    }
+    resultEl.innerHTML = html;
+    renderBarbell(plates);
+  }
+
   function render() {
+    if (inputMode === 'manual') {
+      renderManual();
+      return;
+    }
+
     const targetRaw = targetInput.value.trim();
     if (targetRaw === '') {
       resultEl.classList.remove('error');
@@ -739,7 +975,6 @@
       const loadedPerSide = perSide - leftover;
       const loadedPlates = double ? loadedPerSide * 2 : loadedPerSide;
       const total = machineBase + loadedPlates;
-      const plateCount = plates.reduce((s, p) => s + p.count, 0) * (double ? 2 : 1);
 
       let html = `
         <div class="result-header">
@@ -749,9 +984,13 @@
         <div class="breakdown">
           Machine: <strong>${machineBase} lb</strong>
           &nbsp;·&nbsp; Plates: <strong>${loadedPlates} lb</strong>
-          ${double ? `(${plateCount} total, ${loadedPerSide} per side)` : `(${plateCount})`}
+          ${double ? `(${loadedPerSide} per side)` : ''}
         </div>
       `;
+      if (plates.length > 0) {
+        const prefix = double ? 'Per side: ' : '';
+        html += `<div class="plate-count-line">${prefix}${formatPlateCounts(plates)}</div>`;
+      }
       if (plates.length === 0 && plateTarget === 0 && machineBase > 0) {
         html += '<div class="side-note">No plates needed — machine weight alone matches the target.</div>';
       } else if (plates.length === 0) {
@@ -793,6 +1032,9 @@
         &nbsp;·&nbsp; Each side: <strong>${loadedPerSide} lb</strong>
       </div>
     `;
+    if (plates.length > 0) {
+      html += `<div class="plate-count-line">Per side: ${formatPlateCounts(plates)}</div>`;
+    }
 
     if (plates.length === 0 && useBar) {
       html += '<div class="side-note">No plates needed — just the bar.</div>';
@@ -805,8 +1047,27 @@
     renderBarbell(plates);
   }
 
+  buildPlateCounters();
+  refreshCounterUI();
+  updateManualLabel();
+
+  function clearZeroOnFocus(input) {
+    input.addEventListener('focus', () => {
+      if (input.value === '0') input.value = '';
+    });
+    input.addEventListener('blur', () => {
+      if (input.value === '') {
+        input.value = '0';
+        render();
+      }
+    });
+  }
+  clearZeroOnFocus(targetInput);
+  clearZeroOnFocus(machineBaseInput);
+
   modeTabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
   sidesTabs.forEach(t => t.addEventListener('click', () => setSides(t.dataset.sides)));
+  inputModeTabs.forEach(t => t.addEventListener('click', () => setInputMode(t.dataset.input)));
   targetInput.addEventListener('input', render);
   barInput.addEventListener('change', render);
   machineBaseInput.addEventListener('input', render);
