@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Weight Calculator</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2028;
+    --panel-2: #232b36;
+    --text: #e8eef5;
+    --muted: #8a96a5;
+    --accent: #ff7a1a;
+    --accent-hover: #ff8c3a;
+    --border: #2c3540;
+    --error: #ff5b5b;
+
+    --p45: #d93838;
+    --p25: #2ea44f;
+    --p10: #4a8bf0;
+    --p5:  #f0ba2b;
+    --p25_: #b56cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    width: 100%;
+    max-width: 720px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: -0.3px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .mode-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+  }
+  .mode-tab:hover { color: var(--text); }
+  .mode-tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .controls.single-stack {
+    grid-template-columns: 1fr;
+  }
+  .controls.single-stack .bar-control { display: none; }
+  @media (max-width: 520px) {
+    .controls { grid-template-columns: 1fr; }
+  }
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  input[type="number"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="number"]:focus { border-color: var(--accent); }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    height: 100%;
+  }
+  .toggle-row span { font-size: 15px; font-weight: 500; }
+  .toggle-row .hint { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 6px; }
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  input[type="checkbox"] { display: none; }
+  input[type="checkbox"]:checked + .switch { background: var(--accent); }
+  input[type="checkbox"]:checked + .switch::after { transform: translateX(20px); }
+
+  /* ===== Barbell visualization ===== */
+  .barbell-wrap {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 12px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .barbell {
+    position: relative;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .bar-shaft {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    height: 8px;
+    background: linear-gradient(180deg, #b8bec8 0%, #6f7886 50%, #3f4753 100%);
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .bar-grip {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22%;
+    height: 14px;
+    left: 39%;
+    background-image: repeating-linear-gradient(
+      90deg,
+      #4a525f 0px, #4a525f 1px,
+      #2c3540 1px, #2c3540 3px
+    );
+    border-radius: 2px;
+    border-top: 1px solid #6f7886;
+    border-bottom: 1px solid #1a2028;
+  }
+  .bar-end {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 22px;
+    background: linear-gradient(180deg, #c8cdd5 0%, #7c8493 100%);
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 5;
+  }
+  .bar-end.left { left: 4%; }
+  .bar-end.right { right: 4%; }
+  .collar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 30px;
+    background: linear-gradient(180deg, #9ea5b2 0%, #5b6371 100%);
+    border-radius: 2px;
+    z-index: 3;
+  }
+
+  .plates-side {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .plates-side.left {
+    left: 8%;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+  }
+  .plates-side.right {
+    right: 8%;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  /* ===== Single-stack (machine peg) ===== */
+  .barbell.single-stack .bar-shaft,
+  .barbell.single-stack .bar-grip,
+  .barbell.single-stack .bar-end,
+  .barbell.single-stack .plates-side.right,
+  .barbell.single-stack .collar {
+    display: none;
+  }
+  .barbell.single-stack .plates-side.left {
+    left: calc(12% + 36px);
+    right: auto;
+    transform: translateY(-50%);
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  .machine-base {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 12%;
+    width: 36px;
+    height: 130px;
+    background: linear-gradient(180deg, #3a4250 0%, #1f2630 100%);
+    border: 1px solid #4a525f;
+    border-radius: 6px;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .machine-base::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -8px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 14px;
+    background: linear-gradient(180deg, #5b6371 0%, #2c3540 100%);
+    border-radius: 2px;
+  }
+  .machine-peg {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: calc(12% + 36px);
+    width: 38%;
+    height: 8px;
+    background: linear-gradient(180deg, #b8bec8 0%, #6f7886 50%, #3f4753 100%);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 2;
+  }
+  .machine-peg::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 16px;
+    background: linear-gradient(180deg, #c8cdd5 0%, #7c8493 100%);
+    border-radius: 0 2px 2px 0;
+  }
+  .barbell.single-stack .machine-base,
+  .barbell.single-stack .machine-peg {
+    display: block;
+  }
+
+  .plate {
+    border-radius: 4px;
+    margin: 0 1px;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,0.2), 0 3px 6px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 10px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+    animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    transform-origin: center;
+  }
+  .plates-side.left .plate { animation-name: slideInLeft; }
+  .plates-side.right .plate { animation-name: slideInRight; }
+
+  @keyframes slideInLeft {
+    0%   { opacity: 0; transform: translateX(-180px) rotate(-25deg); }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+  }
+  @keyframes slideInRight {
+    0%   { opacity: 0; transform: translateX(180px) rotate(25deg); }
+    60%  { opacity: 1; }
+    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+  }
+
+  .plate-45  { width: 22px; height: 150px; background: var(--p45); }
+  .plate-25  { width: 17px; height: 115px; background: var(--p25); }
+  .plate-10  { width: 13px; height: 80px;  background: var(--p10); }
+  .plate-5   { width: 10px; height: 60px;  background: var(--p5); color: #2a2a2a; text-shadow: 0 1px 1px rgba(255,255,255,0.3); }
+  .plate-2_5 { width: 8px;  height: 44px;  background: var(--p25_); font-size: 8px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  /* ===== Result panel ===== */
+  .result {
+    padding: 18px 20px;
+    background: var(--panel-2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .result.error { border-color: var(--error); }
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .result-label {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .result-total { font-size: 22px; font-weight: 700; }
+  .breakdown { font-size: 14px; color: var(--muted); }
+  .breakdown strong { color: var(--text); }
+  .side-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    font-style: italic;
+  }
+  .error-msg { color: var(--error); font-size: 14px; }
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 6px 0;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gym Weight Calculator</h1>
+    <div class="subtitle" id="subtitle">Figure out which plates to load on each side</div>
+
+    <div class="mode-tabs" role="tablist">
+      <div class="mode-tab active" data-mode="barbell" role="tab">Barbell</div>
+      <div class="mode-tab" data-mode="single" role="tab">Single stack</div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div>
+        <label class="field-label" for="target">Target weight (lbs)</label>
+        <input type="number" id="target" placeholder="e.g. 225" min="0" step="2.5" inputmode="decimal" value="225">
+      </div>
+      <div class="bar-control">
+        <label class="field-label">Bar</label>
+        <label class="toggle-row" for="bar">
+          <span>45 lb bar<span class="hint">(in total)</span></span>
+          <input type="checkbox" id="bar" checked>
+          <div class="switch"></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="barbell-wrap">
+      <div class="barbell" id="barbell">
+        <div class="bar-shaft"></div>
+        <div class="bar-grip"></div>
+        <div class="bar-end left"></div>
+        <div class="bar-end right"></div>
+        <div class="machine-base"></div>
+        <div class="machine-peg"></div>
+        <div class="plates-side left" id="plates-left"></div>
+        <div class="plates-side right" id="plates-right"></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--p45)"></div>45 lb</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--p25)"></div>25 lb</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--p10)"></div>10 lb</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--p5)"></div>5 lb</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--p25_)"></div>2.5 lb</div>
+      </div>
+    </div>
+
+    <div class="result" id="result">
+      <div class="empty">Enter a target weight to see plates</div>
+    </div>
+  </div>
+
+<script>
+  const PLATES = [45, 25, 10, 5, 2.5];
+  const BAR_WEIGHT = 45;
+  const PLATE_CLASS = {
+    45: 'plate-45',
+    25: 'plate-25',
+    10: 'plate-10',
+    5: 'plate-5',
+    2.5: 'plate-2_5',
+  };
+
+  const targetInput = document.getElementById('target');
+  const barInput = document.getElementById('bar');
+  const resultEl = document.getElementById('result');
+  const leftEl = document.getElementById('plates-left');
+  const rightEl = document.getElementById('plates-right');
+  const barbellEl = document.getElementById('barbell');
+  const controlsEl = document.getElementById('controls');
+  const subtitleEl = document.getElementById('subtitle');
+  const modeTabs = document.querySelectorAll('.mode-tab');
+
+  let mode = 'barbell'; // 'barbell' | 'single'
+
+  function calculatePlates(perSideWeight) {
+    const plates = [];
+    let remaining = perSideWeight;
+    for (const plate of PLATES) {
+      const count = Math.floor(remaining / plate);
+      if (count > 0) {
+        plates.push({ size: plate, count });
+        remaining = Math.round((remaining - plate * count) * 100) / 100;
+      }
+    }
+    return { plates, leftover: remaining };
+  }
+
+  function renderBarbell(plates, opts = {}) {
+    leftEl.innerHTML = '';
+    rightEl.innerHTML = '';
+    if (!plates || plates.length === 0) return;
+
+    const ordered = [];
+    for (const p of plates) {
+      for (let i = 0; i < p.count; i++) ordered.push(p.size);
+    }
+
+    ordered.forEach((size, idx) => {
+      const label = size === 2.5 ? '2.5' : String(size);
+      const left = document.createElement('div');
+      left.className = `plate ${PLATE_CLASS[size]}`;
+      left.style.animationDelay = `${idx * 80}ms`;
+      left.textContent = label;
+      leftEl.appendChild(left);
+
+      if (!opts.singleSide) {
+        const right = document.createElement('div');
+        right.className = `plate ${PLATE_CLASS[size]}`;
+        right.style.animationDelay = `${idx * 80}ms`;
+        right.textContent = label;
+        rightEl.appendChild(right);
+      }
+    });
+  }
+
+  function setMode(newMode) {
+    mode = newMode;
+    modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+    if (mode === 'single') {
+      barbellEl.classList.add('single-stack');
+      controlsEl.classList.add('single-stack');
+      subtitleEl.textContent = 'Stack plates on a single peg — no bar, no symmetry';
+    } else {
+      barbellEl.classList.remove('single-stack');
+      controlsEl.classList.remove('single-stack');
+      subtitleEl.textContent = 'Figure out which plates to load on each side';
+    }
+    render();
+  }
+
+  function render() {
+    const targetRaw = targetInput.value.trim();
+    if (targetRaw === '') {
+      resultEl.classList.remove('error');
+      resultEl.innerHTML = '<div class="empty">Enter a target weight to see plates</div>';
+      renderBarbell([]);
+      return;
+    }
+
+    const target = parseFloat(targetRaw);
+    if (isNaN(target) || target < 0) {
+      resultEl.classList.add('error');
+      resultEl.innerHTML = '<div class="error-msg">Please enter a valid positive number.</div>';
+      renderBarbell([]);
+      return;
+    }
+
+    resultEl.classList.remove('error');
+
+    if (mode === 'single') {
+      const { plates, leftover } = calculatePlates(target);
+      const loaded = target - leftover;
+
+      let html = `
+        <div class="result-header">
+          <span class="result-label">Total stacked</span>
+          <span class="result-total">${loaded} lb</span>
+        </div>
+        <div class="breakdown">Single stack &middot; ${plates.reduce((s, p) => s + p.count, 0)} plate(s)</div>
+      `;
+      if (plates.length === 0) {
+        html += '<div class="side-note">No plates loaded.</div>';
+      }
+      if (leftover > 0) {
+        html += `<div class="side-note">Closest match — short by ${leftover.toFixed(2)} lb.</div>`;
+      }
+      resultEl.innerHTML = html;
+      renderBarbell(plates, { singleSide: true });
+      return;
+    }
+
+    // Barbell mode
+    const useBar = barInput.checked;
+    const barW = useBar ? BAR_WEIGHT : 0;
+
+    if (useBar && target < BAR_WEIGHT) {
+      resultEl.classList.add('error');
+      resultEl.innerHTML = `<div class="error-msg">Target (${target} lb) is less than the bar (${BAR_WEIGHT} lb). Uncheck the bar or raise the target.</div>`;
+      renderBarbell([]);
+      return;
+    }
+
+    const plateTotal = target - barW;
+    const perSide = plateTotal / 2;
+    const { plates, leftover } = calculatePlates(perSide);
+    const loadedPerSide = perSide - leftover;
+    const actualTotal = barW + loadedPerSide * 2;
+
+    let html = `
+      <div class="result-header">
+        <span class="result-label">Total loaded</span>
+        <span class="result-total">${actualTotal} lb</span>
+      </div>
+      <div class="breakdown">
+        Bar: <strong>${barW} lb</strong>
+        &nbsp;·&nbsp; Each side: <strong>${loadedPerSide} lb</strong>
+      </div>
+    `;
+
+    if (plates.length === 0 && useBar) {
+      html += '<div class="side-note">No plates needed — just the bar.</div>';
+    }
+    if (leftover > 0) {
+      html += `<div class="side-note">Closest match — short by ${(leftover * 2).toFixed(2)} lb total.</div>`;
+    }
+
+    resultEl.innerHTML = html;
+    renderBarbell(plates);
+  }
+
+  modeTabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
+  targetInput.addEventListener('input', render);
+  barInput.addEventListener('change', render);
+  render();
+</script>
+</body>
+</html>
