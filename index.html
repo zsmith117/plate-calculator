@@ -85,8 +85,6 @@
     margin-bottom: 20px;
   }
   .controls .machine-controls { display: none; }
-  .controls.single-stack .bar-control { display: none; }
-  .controls.single-stack { grid-template-columns: 1fr; }
   .controls.machine-mode .bar-control { display: none; }
   .controls.machine-mode { grid-template-columns: 1fr; }
   .controls.machine-mode .machine-controls {
@@ -158,7 +156,6 @@
 
     .machine-base { left: 8%; width: 28px; height: 110px; }
     .machine-peg { left: calc(8% + 28px); width: 50%; height: 6px; }
-    .barbell.single-stack .plates-side.left { left: calc(8% + 28px); }
     .barbell.machine-mode:not(.machine-double) .plates-side.left { left: calc(8% + 28px); }
     .machine-center { min-width: 70px; height: 44px; font-size: 11px; padding: 0 10px; }
     .machine-center .center-label { font-size: 8px; }
@@ -332,21 +329,7 @@
     justify-content: flex-start;
   }
 
-  /* ===== Single-stack (machine peg) ===== */
-  .barbell.single-stack .bar-shaft,
-  .barbell.single-stack .bar-grip,
-  .barbell.single-stack .bar-end,
-  .barbell.single-stack .plates-side.right,
-  .barbell.single-stack .collar {
-    display: none;
-  }
-  .barbell.single-stack .plates-side.left {
-    left: calc(12% + 36px);
-    right: auto;
-    transform: translateY(-50%);
-    flex-direction: row;
-    justify-content: flex-start;
-  }
+  /* ===== Machine peg ===== */
   .machine-base {
     display: none;
     position: absolute;
@@ -407,12 +390,6 @@
     background: linear-gradient(180deg, #c8cdd5 0%, #7c8493 100%);
     border-radius: 0 2px 2px 0;
   }
-  .barbell.single-stack .machine-base,
-  .barbell.single-stack .machine-peg {
-    display: block;
-  }
-  /* Pure single-stack: hide starting-weight label */
-  .barbell.single-stack:not(.machine-mode) .machine-label { display: none; }
 
   /* ===== Machine mode ===== */
   /* Machine + single side: behave like single-stack but keep the label */
@@ -569,7 +546,6 @@
 
     <div class="mode-tabs" role="tablist">
       <div class="mode-tab active" data-mode="barbell" role="tab">Barbell</div>
-      <div class="mode-tab" data-mode="single" role="tab">Single stack</div>
       <div class="mode-tab" data-mode="machine" role="tab">Machine</div>
     </div>
 
@@ -652,8 +628,8 @@
   const modeTabs = document.querySelectorAll('.mode-tab');
   const sidesTabs = document.querySelectorAll('.sides-tab');
 
-  let mode = 'barbell';            // 'barbell' | 'single' | 'machine'
-  let machineSides = 'single';     // 'single' | 'double'
+  let mode = 'barbell';            // 'barbell' | 'machine'
+  let machineSides = 'single';     // 'single' | 'double' (machine sub-mode)
 
   function calculatePlates(perSideWeight) {
     const plates = [];
@@ -700,14 +676,10 @@
     mode = newMode;
     modeTabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
 
-    barbellEl.classList.remove('single-stack', 'machine-mode');
-    controlsEl.classList.remove('single-stack', 'machine-mode');
+    barbellEl.classList.remove('machine-mode');
+    controlsEl.classList.remove('machine-mode');
 
-    if (mode === 'single') {
-      barbellEl.classList.add('single-stack');
-      controlsEl.classList.add('single-stack');
-      subtitleEl.textContent = 'Plates on a single peg — no bar, no symmetry';
-    } else if (mode === 'machine') {
+    if (mode === 'machine') {
       barbellEl.classList.add('machine-mode');
       controlsEl.classList.add('machine-mode');
       applySides();
@@ -747,25 +719,6 @@
     }
 
     resultEl.classList.remove('error');
-
-    if (mode === 'single') {
-      const { plates, leftover } = calculatePlates(target);
-      const loaded = target - leftover;
-      const plateCount = plates.reduce((s, p) => s + p.count, 0);
-
-      let html = `
-        <div class="result-header">
-          <span class="result-label">Total stacked</span>
-          <span class="result-total">${loaded} lb</span>
-        </div>
-        <div class="breakdown">Single stack &middot; ${plateCount} plate(s)</div>
-      `;
-      if (plates.length === 0) html += '<div class="side-note">No plates loaded.</div>';
-      if (leftover > 0) html += `<div class="side-note">Closest match — short by ${leftover.toFixed(2)} lb.</div>`;
-      resultEl.innerHTML = html;
-      renderBarbell(plates, { singleSide: true });
-      return;
-    }
 
     if (mode === 'machine') {
       const machineBase = Math.max(0, parseFloat(machineBaseInput.value) || 0);
