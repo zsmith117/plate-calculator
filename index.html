@@ -88,8 +88,65 @@
     grid-template-columns: 1fr;
   }
   .controls.single-stack .bar-control { display: none; }
+
+  /* ===== Mobile ===== */
   @media (max-width: 520px) {
-    .controls { grid-template-columns: 1fr; }
+    body { padding: 10px; }
+    .container { padding: 18px; border-radius: 14px; }
+    h1 { font-size: 20px; }
+    .subtitle { font-size: 13px; margin-bottom: 16px; }
+
+    .mode-tab { padding: 9px 10px; font-size: 13px; }
+
+    .controls { grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+    input[type="number"] { font-size: 17px; padding: 12px 14px; }
+    .toggle-row { padding: 12px 14px; }
+
+    .barbell-wrap {
+      padding: 16px 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .barbell {
+      height: 150px;
+      min-width: 100%;
+    }
+
+    .bar-shaft { left: 5%; right: 5%; height: 6px; }
+    .bar-end.left { left: 2.5%; width: 10px; height: 18px; }
+    .bar-end.right { right: 2.5%; width: 10px; height: 18px; }
+    .bar-grip { left: 42%; width: 16%; height: 12px; }
+    .plates-side.left { left: 6%; }
+    .plates-side.right { right: 6%; }
+
+    .plate { font-size: 9px; margin: 0 1px; }
+    .plate-45  { width: 18px; height: 122px; }
+    .plate-25  { width: 14px; height: 96px; }
+    .plate-10  { width: 11px; height: 68px; }
+    .plate-5   { width: 9px;  height: 52px; }
+    .plate-2_5 { width: 7px;  height: 40px; font-size: 7px; }
+
+    .machine-base { left: 8%; width: 28px; height: 110px; }
+    .machine-peg { left: calc(8% + 28px); width: 50%; height: 6px; }
+    .barbell.single-stack .plates-side.left { left: calc(8% + 28px); }
+
+    .legend { gap: 8px; font-size: 11px; margin-top: 12px; }
+    .legend-swatch { width: 10px; height: 10px; }
+
+    .result { padding: 14px 16px; }
+    .result-total { font-size: 18px; }
+    .result-label { font-size: 12px; }
+    .breakdown { font-size: 13px; }
+  }
+
+  @media (max-width: 360px) {
+    .container { padding: 14px; }
+    .plate-45  { width: 16px; height: 110px; }
+    .plate-25  { width: 12px; height: 86px; }
+    .plate-10  { width: 10px; height: 62px; }
+    .plate-5   { width: 8px;  height: 48px; }
+    .plate-2_5 { width: 6px;  height: 38px; }
+    .bar-grip { left: 43%; width: 14%; }
   }
   label.field-label {
     display: block;
