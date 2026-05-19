@@ -84,10 +84,9 @@
     gap: 14px;
     margin-bottom: 20px;
   }
-  .controls.single-stack {
-    grid-template-columns: 1fr;
-  }
+  .controls .machine-control { display: none; }
   .controls.single-stack .bar-control { display: none; }
+  .controls.single-stack .machine-control { display: block; }
 
   /* ===== Mobile ===== */
   @media (max-width: 520px) {
@@ -325,6 +324,17 @@
     z-index: 1;
     box-shadow: 0 4px 10px rgba(0,0,0,0.4);
   }
+  .machine-label {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+  }
   .machine-base::before {
     content: "";
     position: absolute;
@@ -481,6 +491,10 @@
           <div class="switch"></div>
         </label>
       </div>
+      <div class="machine-control">
+        <label class="field-label" for="machine-base">Machine starting weight (lbs)</label>
+        <input type="number" id="machine-base" placeholder="0" min="0" step="0.5" inputmode="decimal" value="0">
+      </div>
     </div>
 
     <div class="barbell-wrap">
@@ -489,7 +503,7 @@
         <div class="bar-grip"></div>
         <div class="bar-end left"></div>
         <div class="bar-end right"></div>
-        <div class="machine-base"></div>
+        <div class="machine-base"><div class="machine-label" id="machine-label">0 lb</div></div>
         <div class="machine-peg"></div>
         <div class="plates-side left" id="plates-left"></div>
         <div class="plates-side right" id="plates-right"></div>
@@ -521,6 +535,8 @@
 
   const targetInput = document.getElementById('target');
   const barInput = document.getElementById('bar');
+  const machineBaseInput = document.getElementById('machine-base');
+  const machineLabel = document.getElementById('machine-label');
   const resultEl = document.getElementById('result');
   const leftEl = document.getElementById('plates-left');
   const rightEl = document.getElementById('plates-right');
@@ -578,7 +594,7 @@
     if (mode === 'single') {
       barbellEl.classList.add('single-stack');
       controlsEl.classList.add('single-stack');
-      subtitleEl.textContent = 'Stack plates on a single peg — no bar, no symmetry';
+      subtitleEl.textContent = 'Plates on a single peg, with optional machine starting weight';
     } else {
       barbellEl.classList.remove('single-stack');
       controlsEl.classList.remove('single-stack');
@@ -607,17 +623,35 @@
     resultEl.classList.remove('error');
 
     if (mode === 'single') {
-      const { plates, leftover } = calculatePlates(target);
-      const loaded = target - leftover;
+      const machineBase = Math.max(0, parseFloat(machineBaseInput.value) || 0);
+      machineLabel.textContent = `${machineBase} lb`;
+
+      if (machineBase > target) {
+        resultEl.classList.add('error');
+        resultEl.innerHTML = `<div class="error-msg">Target (${target} lb) is less than the machine's starting weight (${machineBase} lb).</div>`;
+        renderBarbell([], { singleSide: true });
+        return;
+      }
+
+      const plateTarget = target - machineBase;
+      const { plates, leftover } = calculatePlates(plateTarget);
+      const loadedPlates = plateTarget - leftover;
+      const total = machineBase + loadedPlates;
+      const plateCount = plates.reduce((s, p) => s + p.count, 0);
 
       let html = `
         <div class="result-header">
-          <span class="result-label">Total stacked</span>
-          <span class="result-total">${loaded} lb</span>
+          <span class="result-label">Total resistance</span>
+          <span class="result-total">${total} lb</span>
         </div>
-        <div class="breakdown">Single stack &middot; ${plates.reduce((s, p) => s + p.count, 0)} plate(s)</div>
+        <div class="breakdown">
+          Machine: <strong>${machineBase} lb</strong>
+          &nbsp;·&nbsp; Plates: <strong>${loadedPlates} lb</strong> (${plateCount})
+        </div>
       `;
-      if (plates.length === 0) {
+      if (plates.length === 0 && machineBase > 0 && plateTarget === 0) {
+        html += '<div class="side-note">No plates needed — machine weight alone matches the target.</div>';
+      } else if (plates.length === 0) {
         html += '<div class="side-note">No plates loaded.</div>';
       }
       if (leftover > 0) {
@@ -670,6 +704,7 @@
   modeTabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
   targetInput.addEventListener('input', render);
   barInput.addEventListener('change', render);
+  machineBaseInput.addEventListener('input', render);
   render();
 </script>
 </body>
